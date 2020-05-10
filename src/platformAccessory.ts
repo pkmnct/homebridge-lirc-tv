@@ -1,27 +1,27 @@
 import { CharacteristicEventTypes } from 'homebridge';
 import type { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback} from 'homebridge';
 
-import { ExampleHomebridgePlatform } from './platform';
+import { LIRC } from './platform';
 
 /**
  * Platform Accessory
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class ExamplePlatformAccessory {
+export class LIRCTelevision {
   private service: Service;
 
   /**
    * These are just used to create a working example
    * You should implement your own code to track the state of your accessory
    */
-  private exampleStates = {
-    On: false,
-    Brightness: 100,
+  private states = {
+    Active: false,
+    ActiveIdentifier: 0,
   }
 
   constructor(
-    private readonly platform: ExampleHomebridgePlatform,
+    private readonly platform: LIRC,
     private readonly accessory: PlatformAccessory,
   ) {
 
@@ -31,57 +31,63 @@ export class ExamplePlatformAccessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'Default-Model')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, 'Default-Serial');
 
-    // get the LightBulb service if it exists, otherwise create a new LightBulb service
-    // you can create multiple services for each accessory
-    this.service = this.accessory.getService(this.platform.Service.Lightbulb) ?? this.accessory.addService(this.platform.Service.Lightbulb);
+    // get the Television service if it exists, otherwise create a new Television service
+    this.service = this.accessory.getService(this.platform.Service.Television) ?? this.accessory.addService(this.platform.Service.Television);
 
-    // To avoid "Cannot add a Service with the same UUID another Service without also defining a unique 'subtype' property." error,
-    // when creating multiple services of the same type, you need to use the following syntax to specify a name and subtype id:
-    // this.accessory.getService('NAME') ?? this.accessory.addService(this.platform.Service.Lightbulb, 'NAME', 'USER_DEFINED_SUBTYPE');
+    // set the configured name, this is what is displayed as the default name on the Home app
+    // we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
+    this.service.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.context.device.name);
 
-    // set the service name, this is what is displayed as the default name on the Home app
-    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.exampleDisplayName);
+    // set sleep discovery characteristic
+    this.service.setCharacteristic(this.platform.Characteristic.SleepDiscoveryMode, this.platform.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE);
 
     // each service must implement at-minimum the "required characteristics" for the given service type
-    // see https://developers.homebridge.io/#/service/Lightbulb
+    // see https://developers.homebridge.io/#/service/Television
 
-    // register handlers for the On/Off Characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.On)
-      .on(CharacteristicEventTypes.SET, this.setOn.bind(this))                // SET - bind to the `setOn` method below
-      .on(CharacteristicEventTypes.GET, this.getOn.bind(this));               // GET - bind to the `getOn` method below
+    // register handlers for the Active Characteristic (on / off events)
+    this.service.getCharacteristic(this.platform.Characteristic.Active)
+      .on(CharacteristicEventTypes.SET, this.setActive.bind(this))                // SET - bind to the `setOn` method below
+      .on(CharacteristicEventTypes.GET, this.getActive.bind(this));               // GET - bind to the `getOn` method below
 
-    // register handlers for the Brightness Characteristic
-    this.service.getCharacteristic(this.platform.Characteristic.Brightness)
-      .on(CharacteristicEventTypes.SET, this.setBrightness.bind(this));       // SET - bind to the 'setBrightness` method below
+    // register handlers for the ActiveIdentifier Characteristic (input events)
+    this.service.getCharacteristic(this.platform.Characteristic.ActiveIdentifier)
+      .on(CharacteristicEventTypes.SET, this.setActiveIdentifier.bind(this));       // SET - bind to the 'setBrightness` method below
 
-    // EXAMPLE ONLY
-    // Example showing how to update the state of a Characteristic asynchronously instead
-    // of using the `on('get')` handlers.
-    //
-    // Here we change update the brightness to a random value every 5 seconds using 
-    // the `updateCharacteristic` method.
-    setInterval(() => {
-      // assign the current brightness a random value between 0 and 100
-      const currentBrightness = Math.floor(Math.random() * 100);
+    this.service.setCharacteristic(this.platform.Characteristic.ActiveIdentifier, 1);
 
-      // push the new value to HomeKit
-      this.service.updateCharacteristic(this.platform.Characteristic.Brightness, currentBrightness);
+    // register handlers for RemoteKey (other key presses)
+    this.service.getCharacteristic(this.platform.Characteristic.RemoteKey)
+      .on(CharacteristicEventTypes.SET, this.setRemoteKey.bind(this));
 
-      this.platform.log.debug('Pushed updated current Brightness state to HomeKit:', currentBrightness);
-    }, 10000);
+    // register inputs
+    accessory.context.device.inputs.forEach((input: {
+      id: string;
+      name: string;
+      type: number; // See InputSourceType from hap-nodejs
+    }, i: number) => {
+      const inputService = accessory.addService(this.platform.Service.InputSource, input.id, input.name);
+      inputService
+        .setCharacteristic(this.platform.Characteristic.Identifier, i)
+        .setCharacteristic(this.platform.Characteristic.ConfiguredName, input.name)
+        .setCharacteristic(this.platform.Characteristic.IsConfigured, this.platform.Characteristic.IsConfigured.CONFIGURED)
+        .setCharacteristic(this.platform.Characteristic.InputSourceType, input.type);
+      this.service.addLinkedService(inputService);
+    });
+
   }
 
   /**
    * Handle "SET" requests from HomeKit
-   * These are sent when the user changes the state of an accessory, for example, turning on a Light bulb.
+   * These are sent when the user changes the state of an accessory.
    */
-  setOn(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  setActive(value: CharacteristicValue, callback: CharacteristicSetCallback) {
 
     // implement your own code to turn your device on/off
-    this.exampleStates.On = value as boolean;
+    this.states.Active = value as boolean;
 
-    this.platform.log.debug('Set Characteristic On ->', value);
+    this.platform.log.debug('Set Characteristic Active ->', value);
+
+    this.service.updateCharacteristic(this.platform.Characteristic.Active, value);
 
     // you must call the callback function
     callback(null);
@@ -100,10 +106,10 @@ export class ExamplePlatformAccessory {
    * @example
    * this.service.updateCharacteristic(this.platform.Characteristic.On, true)
    */
-  getOn(callback: CharacteristicGetCallback) {
+  getActive(callback: CharacteristicGetCallback) {
 
     // implement your own code to check if the device is on
-    const isOn = this.exampleStates.On;
+    const isOn = this.states.Active;
 
     this.platform.log.debug('Get Characteristic On ->', isOn);
 
@@ -115,16 +121,77 @@ export class ExamplePlatformAccessory {
 
   /**
    * Handle "SET" requests from HomeKit
-   * These are sent when the user changes the state of an accessory, for example, changing the Brightness
+   * These are sent when the user changes the state of an accessory.
    */
-  setBrightness(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  setActiveIdentifier(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+    // Store the selected input in state
+    this.states.ActiveIdentifier = value as number;
 
-    // implement your own code to set the brightness
-    this.exampleStates.Brightness = value as number;
-
-    this.platform.log.debug('Set Characteristic Brightness -> ', value);
+    this.platform.log.debug('Set Characteristic Active Identifier -> ', value);
 
     // you must call the callback function
+    callback(null);
+  }
+
+  /**
+   * Handle "SET" requests from HomeKit
+   */
+  setRemoteKey(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+    switch(value) {
+      case this.platform.Characteristic.RemoteKey.REWIND: {
+        this.platform.log.info('set Remote Key Pressed: REWIND');
+        break;
+      }
+      case this.platform.Characteristic.RemoteKey.FAST_FORWARD: {
+        this.platform.log.info('set Remote Key Pressed: FAST_FORWARD');
+        break;
+      }
+      case this.platform.Characteristic.RemoteKey.NEXT_TRACK: {
+        this.platform.log.info('set Remote Key Pressed: NEXT_TRACK');
+        break;
+      }
+      case this.platform.Characteristic.RemoteKey.PREVIOUS_TRACK: {
+        this.platform.log.info('set Remote Key Pressed: PREVIOUS_TRACK');
+        break;
+      }
+      case this.platform.Characteristic.RemoteKey.ARROW_UP: {
+        this.platform.log.info('set Remote Key Pressed: ARROW_UP');
+        break;
+      }
+      case this.platform.Characteristic.RemoteKey.ARROW_DOWN: {
+        this.platform.log.info('set Remote Key Pressed: ARROW_DOWN');
+        break;
+      }
+      case this.platform.Characteristic.RemoteKey.ARROW_LEFT: {
+        this.platform.log.info('set Remote Key Pressed: ARROW_LEFT');
+        break;
+      }
+      case this.platform.Characteristic.RemoteKey.ARROW_RIGHT: {
+        this.platform.log.info('set Remote Key Pressed: ARROW_RIGHT');
+        break;
+      }
+      case this.platform.Characteristic.RemoteKey.SELECT: {
+        this.platform.log.info('set Remote Key Pressed: SELECT');
+        break;
+      }
+      case this.platform.Characteristic.RemoteKey.BACK: {
+        this.platform.log.info('set Remote Key Pressed: BACK');
+        break;
+      }
+      case this.platform.Characteristic.RemoteKey.EXIT: {
+        this.platform.log.info('set Remote Key Pressed: EXIT');
+        break;
+      }
+      case this.platform.Characteristic.RemoteKey.PLAY_PAUSE: {
+        this.platform.log.info('set Remote Key Pressed: PLAY_PAUSE');
+        break;
+      }
+      case this.platform.Characteristic.RemoteKey.INFORMATION: {
+        this.platform.log.info('set Remote Key Pressed: INFORMATION');
+        break;
+      }
+    }
+
     callback(null);
   }
 
