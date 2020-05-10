@@ -50,7 +50,6 @@ export class LIRCController {
         );
 
         client.on('error', (error) => {
-          this.log.error(error.message);
           reject(error);
         });
       }
