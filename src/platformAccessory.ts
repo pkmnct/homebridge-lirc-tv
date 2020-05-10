@@ -2,6 +2,7 @@ import { CharacteristicEventTypes } from 'homebridge';
 import type { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback} from 'homebridge';
 
 import { LIRC } from './platform';
+import { LIRCController } from './lirc';
 
 /**
  * Platform Accessory
@@ -10,6 +11,7 @@ import { LIRC } from './platform';
  */
 export class LIRCTelevision {
   private service: Service;
+  private controller: LIRCController;
 
   /**
    * These are just used to create a working example
@@ -24,6 +26,14 @@ export class LIRCTelevision {
     private readonly platform: LIRC,
     private readonly accessory: PlatformAccessory,
   ) {
+
+    // Initialize LIRC controller
+    this.controller = new LIRCController(
+      accessory.context.device.host,
+      accessory.context.device.port || 8765,
+      accessory.context.device.remote,
+      accessory.context.device.delay || 0,
+      platform.log);
 
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
@@ -53,8 +63,6 @@ export class LIRCTelevision {
     this.service.getCharacteristic(this.platform.Characteristic.ActiveIdentifier)
       .on(CharacteristicEventTypes.SET, this.setActiveIdentifier.bind(this));       // SET - bind to the 'setBrightness` method below
 
-    this.service.setCharacteristic(this.platform.Characteristic.ActiveIdentifier, 1);
-
     // register handlers for RemoteKey (other key presses)
     this.service.getCharacteristic(this.platform.Characteristic.RemoteKey)
       .on(CharacteristicEventTypes.SET, this.setRemoteKey.bind(this));
@@ -81,13 +89,17 @@ export class LIRCTelevision {
    * These are sent when the user changes the state of an accessory.
    */
   setActive(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+    // TODO: In the future add a flag to check whether to use current state or not here
 
-    // implement your own code to turn your device on/off
-    this.states.Active = value as boolean;
-
-    this.platform.log.debug('Set Characteristic Active ->', value);
-
-    this.service.updateCharacteristic(this.platform.Characteristic.Active, value);
+    this.controller.sendCommands(value ? this.accessory.context.device.powerOn : this.accessory.context.device.powerOff).then(() => {
+      this.service.updateCharacteristic(this.platform.Characteristic.Active, value);
+      this.states.Active = value as boolean;
+      this.platform.log.debug('Set Characteristic Active ->', value);
+      callback(null);
+    }).catch((error) => {
+      this.platform.log.error(error);
+      callback(error);
+    });
 
     // you must call the callback function
     callback(null);
@@ -108,7 +120,6 @@ export class LIRCTelevision {
    */
   getActive(callback: CharacteristicGetCallback) {
 
-    // implement your own code to check if the device is on
     const isOn = this.states.Active;
 
     this.platform.log.debug('Get Characteristic On ->', isOn);
@@ -124,19 +135,27 @@ export class LIRCTelevision {
    * These are sent when the user changes the state of an accessory.
    */
   setActiveIdentifier(value: CharacteristicValue, callback: CharacteristicSetCallback) {
-    // Store the selected input in state
-    this.states.ActiveIdentifier = value as number;
+    const thisInput = this.accessory.context.device.inputs[value as number];
 
-    this.platform.log.debug('Set Characteristic Active Identifier -> ', value);
+    this.controller.sendCommands(thisInput.command).then(() => {
+      // Store the selected input in state
+      this.states.ActiveIdentifier = value as number;
+      this.platform.log.debug('Set Characteristic Active Identifier -> ', value);
+  
+      // you must call the callback function
+      callback(null);
 
-    // you must call the callback function
-    callback(null);
+    }).catch((error) => {
+      this.platform.log.error(error);
+      callback(error);
+    });
   }
 
   /**
    * Handle "SET" requests from HomeKit
    */
   setRemoteKey(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+    // TODO: These are not yet implemented
     switch(value) {
       case this.platform.Characteristic.RemoteKey.REWIND: {
         this.platform.log.info('set Remote Key Pressed: REWIND');
