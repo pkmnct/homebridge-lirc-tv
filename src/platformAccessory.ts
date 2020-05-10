@@ -65,7 +65,7 @@ export class LIRCTelevision {
       name: string;
       type: number; // See InputSourceType from hap-nodejs
     }, i: number) => {
-      const inputService = accessory.addService(this.platform.Service.InputSource, input.id, input.name);
+      const inputService = accessory.addService(this.platform.Service.InputSource, input.name, input.name);
       inputService
         .setCharacteristic(this.platform.Characteristic.Identifier, i)
         .setCharacteristic(this.platform.Characteristic.ConfiguredName, input.name)

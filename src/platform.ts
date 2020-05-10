@@ -61,7 +61,7 @@ export class LIRC implements DynamicPlatformPlugin {
       // generate a unique id for the accessory this should be generated from
       // something globally unique, but constant, for example, the device serial
       // number or MAC address
-      const uuid = this.api.hap.uuid.generate(device.id);
+      const uuid = this.api.hap.uuid.generate(device.name);
 
       // check that the device has not already been registered by checking the
       // cached devices we stored in the `configureAccessory` method above
