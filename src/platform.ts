@@ -1,5 +1,11 @@
 import { APIEvent } from 'homebridge';
-import type { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig } from 'homebridge';
+import type {
+  API,
+  DynamicPlatformPlugin,
+  Logger,
+  PlatformAccessory,
+  PlatformConfig
+} from 'homebridge';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { LIRCTelevision } from './platformAccessory';
@@ -19,7 +25,7 @@ export class LIRC implements DynamicPlatformPlugin {
   constructor(
     public readonly log: Logger,
     public readonly config: PlatformConfig,
-    public readonly api: API,
+    public readonly api: API
   ) {
     this.log.debug('Finished initializing platform:', PLATFORM_NAME);
 
@@ -57,7 +63,6 @@ export class LIRC implements DynamicPlatformPlugin {
   discoverDevices() {
     // loop over the configured devices and register each one if it has not already been registered
     for (const device of this.config.devices) {
-
       // generate a unique id for the accessory this should be generated from
       // something globally unique, but constant, for example, the device serial
       // number or MAC address
@@ -65,7 +70,7 @@ export class LIRC implements DynamicPlatformPlugin {
 
       // check that the device has not already been registered by checking the
       // cached devices we stored in the `configureAccessory` method above
-      if (!this.accessories.find(accessory => accessory.UUID === uuid)) {
+      if (!this.accessories.find((accessory) => accessory.UUID === uuid)) {
         this.log.info('Registering new accessory:', device.name);
 
         // create a new accessory
@@ -92,6 +97,5 @@ export class LIRC implements DynamicPlatformPlugin {
         // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
     }
-
   }
 }

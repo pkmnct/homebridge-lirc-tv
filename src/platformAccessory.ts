@@ -1,5 +1,11 @@
 import { CharacteristicEventTypes } from 'homebridge';
-import type { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback} from 'homebridge';
+import type {
+  Service,
+  PlatformAccessory,
+  CharacteristicValue,
+  CharacteristicSetCallback,
+  CharacteristicGetCallback
+} from 'homebridge';
 
 import { LIRC } from './platform';
 import { LIRCController } from './lirc';
@@ -19,69 +25,104 @@ export class LIRCTelevision {
    */
   private states = {
     Active: false,
-    ActiveIdentifier: 0,
-  }
+    ActiveIdentifier: 0
+  };
 
   constructor(
     private readonly platform: LIRC,
-    private readonly accessory: PlatformAccessory,
+    private readonly accessory: PlatformAccessory
   ) {
-
     // Initialize LIRC controller
     this.controller = new LIRCController(
       accessory.context.device.host,
       accessory.context.device.port || 8765,
       accessory.context.device.remote,
       accessory.context.device.delay || 0,
-      platform.log);
+      platform.log
+    );
 
     // set accessory information
-    this.accessory.getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Default-Manufacturer')
+    this.accessory
+      .getService(this.platform.Service.AccessoryInformation)!
+      .setCharacteristic(
+        this.platform.Characteristic.Manufacturer,
+        'Default-Manufacturer'
+      )
       .setCharacteristic(this.platform.Characteristic.Model, 'Default-Model')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, 'Default-Serial');
+      .setCharacteristic(
+        this.platform.Characteristic.SerialNumber,
+        'Default-Serial'
+      );
 
     // get the Television service if it exists, otherwise create a new Television service
-    this.service = this.accessory.getService(this.platform.Service.Television) ?? this.accessory.addService(this.platform.Service.Television);
+    this.service =
+      this.accessory.getService(this.platform.Service.Television) ??
+      this.accessory.addService(this.platform.Service.Television);
 
     // set the configured name, this is what is displayed as the default name on the Home app
     // we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.ConfiguredName, accessory.context.device.name);
+    this.service.setCharacteristic(
+      this.platform.Characteristic.ConfiguredName,
+      accessory.context.device.name
+    );
 
     // set sleep discovery characteristic
-    this.service.setCharacteristic(this.platform.Characteristic.SleepDiscoveryMode, this.platform.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE);
+    this.service.setCharacteristic(
+      this.platform.Characteristic.SleepDiscoveryMode,
+      this.platform.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE
+    );
 
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/Television
 
     // register handlers for the Active Characteristic (on / off events)
-    this.service.getCharacteristic(this.platform.Characteristic.Active)
-      .on(CharacteristicEventTypes.SET, this.setActive.bind(this))                // SET - bind to the `setOn` method below
-      .on(CharacteristicEventTypes.GET, this.getActive.bind(this));               // GET - bind to the `getOn` method below
+    this.service
+      .getCharacteristic(this.platform.Characteristic.Active)
+      .on(CharacteristicEventTypes.SET, this.setActive.bind(this)) // SET - bind to the `setOn` method below
+      .on(CharacteristicEventTypes.GET, this.getActive.bind(this)); // GET - bind to the `getOn` method below
 
     // register handlers for the ActiveIdentifier Characteristic (input events)
-    this.service.getCharacteristic(this.platform.Characteristic.ActiveIdentifier)
-      .on(CharacteristicEventTypes.SET, this.setActiveIdentifier.bind(this));       // SET - bind to the 'setBrightness` method below
+    this.service
+      .getCharacteristic(this.platform.Characteristic.ActiveIdentifier)
+      .on(CharacteristicEventTypes.SET, this.setActiveIdentifier.bind(this)); // SET - bind to the 'setBrightness` method below
 
     // register handlers for RemoteKey (other key presses)
-    this.service.getCharacteristic(this.platform.Characteristic.RemoteKey)
+    this.service
+      .getCharacteristic(this.platform.Characteristic.RemoteKey)
       .on(CharacteristicEventTypes.SET, this.setRemoteKey.bind(this));
 
     // register inputs
-    accessory.context.device.inputs.forEach((input: {
-      id: string;
-      name: string;
-      type: number; // See InputSourceType from hap-nodejs
-    }, i: number) => {
-      const inputService = accessory.addService(this.platform.Service.InputSource, input.name, input.name);
-      inputService
-        .setCharacteristic(this.platform.Characteristic.Identifier, i)
-        .setCharacteristic(this.platform.Characteristic.ConfiguredName, input.name)
-        .setCharacteristic(this.platform.Characteristic.IsConfigured, this.platform.Characteristic.IsConfigured.CONFIGURED)
-        .setCharacteristic(this.platform.Characteristic.InputSourceType, input.type);
-      this.service.addLinkedService(inputService);
-    });
-
+    accessory.context.device.inputs.forEach(
+      (
+        input: {
+          id: string;
+          name: string;
+          type: number; // See InputSourceType from hap-nodejs
+        },
+        i: number
+      ) => {
+        const inputService = accessory.addService(
+          this.platform.Service.InputSource,
+          input.name,
+          input.name
+        );
+        inputService
+          .setCharacteristic(this.platform.Characteristic.Identifier, i)
+          .setCharacteristic(
+            this.platform.Characteristic.ConfiguredName,
+            input.name
+          )
+          .setCharacteristic(
+            this.platform.Characteristic.IsConfigured,
+            this.platform.Characteristic.IsConfigured.CONFIGURED
+          )
+          .setCharacteristic(
+            this.platform.Characteristic.InputSourceType,
+            input.type
+          );
+        this.service.addLinkedService(inputService);
+      }
+    );
   }
 
   /**
@@ -91,15 +132,25 @@ export class LIRCTelevision {
   setActive(value: CharacteristicValue, callback: CharacteristicSetCallback) {
     // TODO: In the future add a flag to check whether to use current state or not here
 
-    this.controller.sendCommands(value ? this.accessory.context.device.powerOn : this.accessory.context.device.powerOff).then(() => {
-      this.service.updateCharacteristic(this.platform.Characteristic.Active, value);
-      this.states.Active = value as boolean;
-      this.platform.log.debug('Set Characteristic Active ->', value);
-      callback(null);
-    }).catch((error) => {
-      this.platform.log.error(error);
-      callback(error);
-    });
+    this.controller
+      .sendCommands(
+        value
+          ? this.accessory.context.device.powerOn
+          : this.accessory.context.device.powerOff
+      )
+      .then(() => {
+        this.service.updateCharacteristic(
+          this.platform.Characteristic.Active,
+          value
+        );
+        this.states.Active = value as boolean;
+        this.platform.log.debug('Set Characteristic Active ->', value);
+        callback(null);
+      })
+      .catch((error) => {
+        this.platform.log.error(error);
+        callback(error);
+      });
 
     // you must call the callback function
     callback(null);
@@ -119,7 +170,6 @@ export class LIRCTelevision {
    * this.service.updateCharacteristic(this.platform.Characteristic.On, true)
    */
   getActive(callback: CharacteristicGetCallback) {
-
     const isOn = this.states.Active;
 
     this.platform.log.debug('Get Characteristic On ->', isOn);
@@ -134,29 +184,40 @@ export class LIRCTelevision {
    * Handle "SET" requests from HomeKit
    * These are sent when the user changes the state of an accessory.
    */
-  setActiveIdentifier(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  setActiveIdentifier(
+    value: CharacteristicValue,
+    callback: CharacteristicSetCallback
+  ) {
     const thisInput = this.accessory.context.device.inputs[value as number];
 
-    this.controller.sendCommands(thisInput.command).then(() => {
-      // Store the selected input in state
-      this.states.ActiveIdentifier = value as number;
-      this.platform.log.debug('Set Characteristic Active Identifier -> ', value);
-  
-      // you must call the callback function
-      callback(null);
+    this.controller
+      .sendCommands(thisInput.command)
+      .then(() => {
+        // Store the selected input in state
+        this.states.ActiveIdentifier = value as number;
+        this.platform.log.debug(
+          'Set Characteristic Active Identifier -> ',
+          value
+        );
 
-    }).catch((error) => {
-      this.platform.log.error(error);
-      callback(error);
-    });
+        // you must call the callback function
+        callback(null);
+      })
+      .catch((error) => {
+        this.platform.log.error(error);
+        callback(error);
+      });
   }
 
   /**
    * Handle "SET" requests from HomeKit
    */
-  setRemoteKey(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  setRemoteKey(
+    value: CharacteristicValue,
+    callback: CharacteristicSetCallback
+  ) {
     // TODO: These are not yet implemented
-    switch(value) {
+    switch (value) {
       case this.platform.Characteristic.RemoteKey.REWIND: {
         this.platform.log.info('set Remote Key Pressed: REWIND');
         break;
@@ -213,5 +274,4 @@ export class LIRCTelevision {
 
     callback(null);
   }
-
 }
