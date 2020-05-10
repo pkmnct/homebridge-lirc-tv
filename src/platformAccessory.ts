@@ -46,12 +46,15 @@ export class LIRCTelevision {
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(
         this.platform.Characteristic.Manufacturer,
-        'Default-Manufacturer'
+        accessory.context.device.manufacturer || 'Unknown'
       )
-      .setCharacteristic(this.platform.Characteristic.Model, 'Default-Model')
+      .setCharacteristic(
+        this.platform.Characteristic.Model,
+        accessory.context.device.model || 'Unknown'
+      )
       .setCharacteristic(
         this.platform.Characteristic.SerialNumber,
-        'Default-Serial'
+        accessory.context.device.serial || 'Unknown'
       );
 
     // get the Television service if it exists, otherwise create a new Television service

@@ -15,6 +15,18 @@
               "type": "string",
               "required": true
             },
+            "manufacturer": {
+              "type": "string",
+              "placeholder": "Unknown"
+            },
+            "serial": {
+              "type": "string",
+              "placeholder": "Unknown"
+            },
+            "model": {
+              "type": "string",
+              "placeholder": "Unknown"
+            },
             "remote": {
               "title": "LIRC Remote Name",
               "type": "string",
