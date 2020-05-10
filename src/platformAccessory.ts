@@ -154,9 +154,6 @@ export class LIRCTelevision {
         this.platform.log.error(error);
         callback(error);
       });
-
-    // you must call the callback function
-    callback(null);
   }
 
   /**
