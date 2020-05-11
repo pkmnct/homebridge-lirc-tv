@@ -1,6 +1,6 @@
 # Homebridge LIRC TV
 
-This Homebridge plugin enables control of Televisions using LIRC.
+This Homebridge plugin enables control of Televisions using LIRC. You can also use it to control other IR devices with multiple inputs.
 
 ## Compatibility
 
