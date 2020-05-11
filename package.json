@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge LIRC TV",
   "name": "homebridge-lirc-tv",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Control IR Televisions using LIRC",
   "license": "Apache-2.0",
   "repository": {
@@ -24,9 +24,11 @@
   },
   "keywords": [
     "homebridge-plugin",
-    "sharp",
-    "serial",
-    "rs232"
+    "lirc",
+    "ir",
+    "tv",
+    "television",
+    "homekit"
   ],
   "dependencies": {},
   "devDependencies": {
