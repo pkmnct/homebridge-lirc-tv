@@ -89,11 +89,6 @@ export class LIRCTelevision {
       .getCharacteristic(this.platform.Characteristic.ActiveIdentifier)
       .on(CharacteristicEventTypes.SET, this.setActiveIdentifier.bind(this)); // SET - bind to the 'setBrightness` method below
 
-    // register handlers for RemoteKey (other key presses)
-    this.service
-      .getCharacteristic(this.platform.Characteristic.RemoteKey)
-      .on(CharacteristicEventTypes.SET, this.setRemoteKey.bind(this));
-
     // register inputs
     accessory.context.device.inputs.forEach(
       (
@@ -133,8 +128,6 @@ export class LIRCTelevision {
    * These are sent when the user changes the state of an accessory.
    */
   setActive(value: CharacteristicValue, callback: CharacteristicSetCallback) {
-    // TODO: In the future add a flag to check whether to use current state or not here
-
     this.controller
       .sendCommands(
         value
@@ -207,71 +200,5 @@ export class LIRCTelevision {
         this.platform.log.error(error);
         callback(error);
       });
-  }
-
-  /**
-   * Handle "SET" requests from HomeKit
-   */
-  setRemoteKey(
-    value: CharacteristicValue,
-    callback: CharacteristicSetCallback
-  ) {
-    // TODO: These are not yet implemented
-    switch (value) {
-      case this.platform.Characteristic.RemoteKey.REWIND: {
-        this.platform.log.info('set Remote Key Pressed: REWIND');
-        break;
-      }
-      case this.platform.Characteristic.RemoteKey.FAST_FORWARD: {
-        this.platform.log.info('set Remote Key Pressed: FAST_FORWARD');
-        break;
-      }
-      case this.platform.Characteristic.RemoteKey.NEXT_TRACK: {
-        this.platform.log.info('set Remote Key Pressed: NEXT_TRACK');
-        break;
-      }
-      case this.platform.Characteristic.RemoteKey.PREVIOUS_TRACK: {
-        this.platform.log.info('set Remote Key Pressed: PREVIOUS_TRACK');
-        break;
-      }
-      case this.platform.Characteristic.RemoteKey.ARROW_UP: {
-        this.platform.log.info('set Remote Key Pressed: ARROW_UP');
-        break;
-      }
-      case this.platform.Characteristic.RemoteKey.ARROW_DOWN: {
-        this.platform.log.info('set Remote Key Pressed: ARROW_DOWN');
-        break;
-      }
-      case this.platform.Characteristic.RemoteKey.ARROW_LEFT: {
-        this.platform.log.info('set Remote Key Pressed: ARROW_LEFT');
-        break;
-      }
-      case this.platform.Characteristic.RemoteKey.ARROW_RIGHT: {
-        this.platform.log.info('set Remote Key Pressed: ARROW_RIGHT');
-        break;
-      }
-      case this.platform.Characteristic.RemoteKey.SELECT: {
-        this.platform.log.info('set Remote Key Pressed: SELECT');
-        break;
-      }
-      case this.platform.Characteristic.RemoteKey.BACK: {
-        this.platform.log.info('set Remote Key Pressed: BACK');
-        break;
-      }
-      case this.platform.Characteristic.RemoteKey.EXIT: {
-        this.platform.log.info('set Remote Key Pressed: EXIT');
-        break;
-      }
-      case this.platform.Characteristic.RemoteKey.PLAY_PAUSE: {
-        this.platform.log.info('set Remote Key Pressed: PLAY_PAUSE');
-        break;
-      }
-      case this.platform.Characteristic.RemoteKey.INFORMATION: {
-        this.platform.log.info('set Remote Key Pressed: INFORMATION');
-        break;
-      }
-    }
-
-    callback(null);
   }
 }
