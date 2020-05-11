@@ -42,7 +42,9 @@ export class LIRCController {
           },
           () => {
             const requestBody = `SEND_ONCE ${this.remote} ${key}`;
-            this.log.info(`Sending command to LIRC: ${requestBody}`);
+            this.log.info(
+              `Sending command to LIRC (${this.host}:${this.port}): ${requestBody}`
+            );
             client.write(`${requestBody}\r\n`);
             client.end();
             setTimeout(resolve, this.delay);
