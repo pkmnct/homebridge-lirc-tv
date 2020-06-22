@@ -1,3 +1,6 @@
+# Ignore macOS Files
+.DS_Store
+
 # Ignore compiled code
 dist
 
