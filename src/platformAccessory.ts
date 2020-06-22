@@ -90,37 +90,38 @@ export class LIRCTelevision {
       .on(CharacteristicEventTypes.SET, this.setActiveIdentifier.bind(this)); // SET - bind to the 'setBrightness` method below
 
     // register inputs
-    accessory.context.device.inputs.forEach(
-      (
-        input: {
-          id: string;
-          name: string;
-          type: number; // See InputSourceType from hap-nodejs
-        },
-        i: number
-      ) => {
-        const inputService = accessory.addService(
-          this.platform.Service.InputSource,
-          input.name,
-          input.name
-        );
-        inputService
-          .setCharacteristic(this.platform.Characteristic.Identifier, i)
-          .setCharacteristic(
-            this.platform.Characteristic.ConfiguredName,
+    accessory.context.device.inputs &&
+      accessory.context.device.inputs.forEach(
+        (
+          input: {
+            id: string;
+            name: string;
+            type: number; // See InputSourceType from hap-nodejs
+          },
+          i: number
+        ) => {
+          const inputService = accessory.addService(
+            this.platform.Service.InputSource,
+            input.name,
             input.name
-          )
-          .setCharacteristic(
-            this.platform.Characteristic.IsConfigured,
-            this.platform.Characteristic.IsConfigured.CONFIGURED
-          )
-          .setCharacteristic(
-            this.platform.Characteristic.InputSourceType,
-            input.type
           );
-        this.service.addLinkedService(inputService);
-      }
-    );
+          inputService
+            .setCharacteristic(this.platform.Characteristic.Identifier, i)
+            .setCharacteristic(
+              this.platform.Characteristic.ConfiguredName,
+              input.name
+            )
+            .setCharacteristic(
+              this.platform.Characteristic.IsConfigured,
+              this.platform.Characteristic.IsConfigured.CONFIGURED
+            )
+            .setCharacteristic(
+              this.platform.Characteristic.InputSourceType,
+              input.type
+            );
+          this.service.addLinkedService(inputService);
+        }
+      );
   }
 
   /**
