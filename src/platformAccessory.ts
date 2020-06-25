@@ -288,11 +288,6 @@ export class LIRCTelevision {
           : this.accessory.context.device.muteOff
       )
       .then(() => {
-        this.tvService.updateCharacteristic(
-          this.platform.Characteristic.Active,
-          value
-        );
-        this.states.Active = value as boolean;
         this.platform.log.debug('Set Mute Active ->', value);
         callback(null);
       })
@@ -317,11 +312,6 @@ export class LIRCTelevision {
           : this.accessory.context.device.volumeUp
       )
       .then(() => {
-        this.tvService.updateCharacteristic(
-          this.platform.Characteristic.Active,
-          value
-        );
-        this.states.Active = value as boolean;
         this.platform.log.debug('Set Vol ->', value);
         callback(null);
       })
