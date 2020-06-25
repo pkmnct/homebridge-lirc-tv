@@ -16,7 +16,8 @@ import { LIRCController } from './lirc';
  * Each accessory may expose multiple services of different service types.
  */
 export class LIRCTelevision {
-  private service: Service;
+  private tvService: Service;
+  private tvSpeakerService: Service | undefined;
   private controller: LIRCController;
 
   /**
@@ -58,19 +59,18 @@ export class LIRCTelevision {
       );
 
     // get the Television service if it exists, otherwise create a new Television service
-    this.service =
+    this.tvService =
       this.accessory.getService(this.platform.Service.Television) ??
       this.accessory.addService(this.platform.Service.Television);
 
-    // set the configured name, this is what is displayed as the default name on the Home app
-    // we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(
+    // set the configured name for the Television service, this is what is displayed as the default name on the Home app
+    this.tvService.setCharacteristic(
       this.platform.Characteristic.ConfiguredName,
       accessory.context.device.name
     );
 
     // set sleep discovery characteristic
-    this.service.setCharacteristic(
+    this.tvService.setCharacteristic(
       this.platform.Characteristic.SleepDiscoveryMode,
       this.platform.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE
     );
@@ -79,15 +79,82 @@ export class LIRCTelevision {
     // see https://developers.homebridge.io/#/service/Television
 
     // register handlers for the Active Characteristic (on / off events)
-    this.service
+    this.tvService
       .getCharacteristic(this.platform.Characteristic.Active)
       .on(CharacteristicEventTypes.SET, this.setActive.bind(this)) // SET - bind to the `setOn` method below
       .on(CharacteristicEventTypes.GET, this.getActive.bind(this)); // GET - bind to the `getOn` method below
 
     // register handlers for the ActiveIdentifier Characteristic (input events)
-    this.service
+    this.tvService
       .getCharacteristic(this.platform.Characteristic.ActiveIdentifier)
       .on(CharacteristicEventTypes.SET, this.setActiveIdentifier.bind(this)); // SET - bind to the 'setBrightness` method below
+
+    // register handlers for the remote control
+    if (accessory.context.device.remoteKeys) {
+      // map remote keys to their commands
+      const mappedRemoteKeys: { [key: number]: string[] } = {};
+      accessory.context.device.remoteKeys.forEach(
+        (remoteKey: { type: number; command: string[] }) => {
+          mappedRemoteKeys[remoteKey.type] = remoteKey.command;
+        }
+      );
+
+      this.tvService
+        .getCharacteristic(this.platform.Characteristic.RemoteKey)
+        .on(
+          CharacteristicEventTypes.SET,
+          (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
+            if (value in mappedRemoteKeys) {
+              this.controller
+                .sendCommands(mappedRemoteKeys[value as number])
+                .then(() => {
+                  callback(null);
+                })
+                .catch((error) => {
+                  this.platform.log.error(error);
+                  callback(error);
+                });
+            } else {
+              callback(
+                new Error(`This RemoteKey has not been configured: ${value}`)
+              );
+            }
+          }
+        );
+    }
+
+    //
+
+    if (
+      accessory.context.device.muteOn &&
+      accessory.context.device.muteOff &&
+      accessory.context.device.volumeUp &&
+      accessory.context.device.volumeDown
+    ) {
+      // get the Television Speaker service if it exists, otherwise create a new Television Speaker service
+      this.tvSpeakerService =
+        this.accessory.getService(this.platform.Service.TelevisionSpeaker) ??
+        this.accessory.addService(this.platform.Service.TelevisionSpeaker);
+
+      // set the configured name for the Television Speaker service, this is what is displayed as the default name on the Home app
+      this.tvSpeakerService.setCharacteristic(
+        this.platform.Characteristic.ConfiguredName,
+        accessory.context.device.name + 'Volume'
+      );
+
+      // set the volume control type
+      this.tvSpeakerService.setCharacteristic(
+        this.platform.Characteristic.VolumeControlType,
+        this.platform.Characteristic.VolumeControlType.RELATIVE
+      );
+
+      this.tvSpeakerService
+        .getCharacteristic(this.platform.Characteristic.Mute)
+        .on(CharacteristicEventTypes.SET, this.setMute.bind(this));
+      this.tvSpeakerService
+        .getCharacteristic(this.platform.Characteristic.VolumeSelector)
+        .on(CharacteristicEventTypes.SET, this.setVolume.bind(this));
+    }
 
     // register inputs
     accessory.context.device.inputs &&
@@ -119,7 +186,7 @@ export class LIRCTelevision {
               this.platform.Characteristic.InputSourceType,
               input.type
             );
-          this.service.addLinkedService(inputService);
+          this.tvService.addLinkedService(inputService);
         }
       );
   }
@@ -128,7 +195,10 @@ export class LIRCTelevision {
    * Handle "SET" requests from HomeKit
    * These are sent when the user changes the state of an accessory.
    */
-  setActive(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  setActive(
+    value: CharacteristicValue,
+    callback: CharacteristicSetCallback
+  ): void {
     this.controller
       .sendCommands(
         value
@@ -136,7 +206,7 @@ export class LIRCTelevision {
           : this.accessory.context.device.powerOff
       )
       .then(() => {
-        this.service.updateCharacteristic(
+        this.tvService.updateCharacteristic(
           this.platform.Characteristic.Active,
           value
         );
@@ -161,9 +231,9 @@ export class LIRCTelevision {
    * asynchronously instead using the `updateCharacteristic` method instead.
 
    * @example
-   * this.service.updateCharacteristic(this.platform.Characteristic.On, true)
+   * this.tvService.updateCharacteristic(this.platform.Characteristic.On, true)
    */
-  getActive(callback: CharacteristicGetCallback) {
+  getActive(callback: CharacteristicGetCallback): void {
     const isOn = this.states.Active;
 
     this.platform.log.debug('Get Characteristic On ->', isOn);
@@ -181,7 +251,7 @@ export class LIRCTelevision {
   setActiveIdentifier(
     value: CharacteristicValue,
     callback: CharacteristicSetCallback
-  ) {
+  ): void {
     const thisInput = this.accessory.context.device.inputs[value as number];
 
     this.controller
@@ -195,6 +265,64 @@ export class LIRCTelevision {
         );
 
         // you must call the callback function
+        callback(null);
+      })
+      .catch((error) => {
+        this.platform.log.error(error);
+        callback(error);
+      });
+  }
+
+  /**
+   * Handle "SET" requests from HomeKit
+   * These are sent when the user changes the state of an accessory.
+   */
+  setMute(
+    value: CharacteristicValue,
+    callback: CharacteristicSetCallback
+  ): void {
+    this.controller
+      .sendCommands(
+        value
+          ? this.accessory.context.device.muteOn
+          : this.accessory.context.device.muteOff
+      )
+      .then(() => {
+        this.tvService.updateCharacteristic(
+          this.platform.Characteristic.Active,
+          value
+        );
+        this.states.Active = value as boolean;
+        this.platform.log.debug('Set Mute Active ->', value);
+        callback(null);
+      })
+      .catch((error) => {
+        this.platform.log.error(error);
+        callback(error);
+      });
+  }
+
+  /**
+   * Handle "SET" requests from HomeKit
+   * These are sent when the user changes the state of an accessory.
+   */
+  setVolume(
+    value: CharacteristicValue,
+    callback: CharacteristicSetCallback
+  ): void {
+    this.controller
+      .sendCommands(
+        value
+          ? this.accessory.context.device.volumeDown
+          : this.accessory.context.device.volumeUp
+      )
+      .then(() => {
+        this.tvService.updateCharacteristic(
+          this.platform.Characteristic.Active,
+          value
+        );
+        this.states.Active = value as boolean;
+        this.platform.log.debug('Set Vol ->', value);
         callback(null);
       })
       .catch((error) => {

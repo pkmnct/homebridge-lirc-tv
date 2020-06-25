@@ -4,9 +4,13 @@ import { Logger } from 'homebridge';
 const DELAY_INDENTIFIER = 'DELAY|';
 
 export class LIRCController {
-  private sendCommand: Function;
+  private sendCommand: (
+    key: string,
+    resolve: (value?: void | PromiseLike<void> | undefined) => void,
+    reject: (reason?: Error) => void
+  ) => void;
 
-  public sendCommands = (keys: string[]) => {
+  public sendCommands = (keys: string[]): Promise<void> => {
     return keys.reduce((collector: Promise<void>, key) => {
       return collector.then(
         () =>
@@ -26,8 +30,8 @@ export class LIRCController {
   ) {
     this.sendCommand = (
       key: string,
-      resolve: typeof Promise.resolve,
-      reject: typeof Promise.reject
+      resolve: (value?: void | PromiseLike<void> | undefined) => void,
+      reject: (reason?: Error) => void
     ) => {
       if (key.startsWith(DELAY_INDENTIFIER)) {
         // This is just a delay key, no need to send to LIRC

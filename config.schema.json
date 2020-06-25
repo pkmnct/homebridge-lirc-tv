@@ -65,6 +65,38 @@
               },
               "required": ["items"]
             },
+            "muteOn": {
+              "title": "Set Mute On Command(s)",
+              "type": "array",
+              "items": {
+                "title": "LIRC Remote Button/Command",
+                "type": "string"
+              }
+            },
+            "muteOff": {
+              "title": "Set Mute Off Command(s)",
+              "type": "array",
+              "items": {
+                "title": "LIRC Remote Button/Command",
+                "type": "string"
+              }
+            },
+            "volumeUp": {
+              "title": "Volume Up Command(s)",
+              "type": "array",
+              "items": {
+                "title": "LIRC Remote Button/Command",
+                "type": "string"
+              }
+            },
+            "volumeDown": {
+              "title": "Volume Down Command(s)",
+              "type": "array",
+              "items": {
+                "title": "LIRC Remote Button/Command",
+                "type": "string"
+              }
+            },
             "inputs": {
               "type": "array",
               "items": {
@@ -91,6 +123,43 @@
                       { "title": "Airplay", "enum": [8] },
                       { "title": "USB", "enum": [9] },
                       { "title": "Application", "enum": [10] }
+                    ]
+                  },
+                  "command": {
+                    "title": "Command(s)",
+                    "type": "array",
+                    "items": {
+                      "title": "LIRC Remote Button/Command",
+                      "type": "string"
+                    },
+                    "required": ["items"]
+                  }
+                }
+              }
+            },
+            "remoteKeys": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "title": "Type",
+                    "type": "integer",
+                    "required": true,
+                    "oneOf": [
+                      { "title": "Rewind", "enum": [0] },
+                      { "title": "Fast Forward", "enum": [1] },
+                      { "title": "Next Track", "enum": [2] },
+                      { "title": "Previous Track", "enum": [3] },
+                      { "title": "Arrow Up", "enum": [4] },
+                      { "title": "Arrow Down", "enum": [5] },
+                      { "title": "Arrow Left", "enum": [6] },
+                      { "title": "Arrow Right", "enum": [7] },
+                      { "title": "Select", "enum": [8] },
+                      { "title": "Back", "enum": [9] },
+                      { "title": "Exit", "enum": [10] },
+                      { "title": "Play/Pause", "enum": [11] },
+                      { "title": "Information", "enum": [15] }
                     ]
                   },
                   "command": {
