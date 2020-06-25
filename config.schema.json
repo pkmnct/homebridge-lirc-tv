@@ -65,6 +65,38 @@
               },
               "required": ["items"]
             },
+            "muteOn": {
+              "title": "Set Mute On Command(s)",
+              "type": "array",
+              "items": {
+                "title": "LIRC Remote Button/Command",
+                "type": "string"
+              }
+            },
+            "muteOff": {
+              "title": "Set Mute Off Command(s)",
+              "type": "array",
+              "items": {
+                "title": "LIRC Remote Button/Command",
+                "type": "string"
+              }
+            },
+            "volumeUp": {
+              "title": "Volume Up Command(s)",
+              "type": "array",
+              "items": {
+                "title": "LIRC Remote Button/Command",
+                "type": "string"
+              }
+            },
+            "volumeDown": {
+              "title": "Volume Down Command(s)",
+              "type": "array",
+              "items": {
+                "title": "LIRC Remote Button/Command",
+                "type": "string"
+              }
+            },
             "inputs": {
               "type": "array",
               "items": {
