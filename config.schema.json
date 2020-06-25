@@ -104,6 +104,43 @@
                   }
                 }
               }
+            },
+            "remoteKeys": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "title": "Type",
+                    "type": "integer",
+                    "required": true,
+                    "oneOf": [
+                      { "title": "Rewind", "enum": [0] },
+                      { "title": "Fast Forward", "enum": [1] },
+                      { "title": "Next Track", "enum": [2] },
+                      { "title": "Previous Track", "enum": [3] },
+                      { "title": "Arrow Up", "enum": [4] },
+                      { "title": "Arrow Down", "enum": [5] },
+                      { "title": "Arrow Left", "enum": [6] },
+                      { "title": "Arrow Right", "enum": [7] },
+                      { "title": "Select", "enum": [8] },
+                      { "title": "Back", "enum": [9] },
+                      { "title": "Exit", "enum": [10] },
+                      { "title": "Play/Pause", "enum": [11] },
+                      { "title": "Information", "enum": [15] }
+                    ]
+                  },
+                  "command": {
+                    "title": "Command(s)",
+                    "type": "array",
+                    "items": {
+                      "title": "LIRC Remote Button/Command",
+                      "type": "string"
+                    },
+                    "required": ["items"]
+                  }
+                }
+              }
             }
           }
         }

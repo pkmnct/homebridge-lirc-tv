@@ -89,6 +89,40 @@ export class LIRCTelevision {
       .getCharacteristic(this.platform.Characteristic.ActiveIdentifier)
       .on(CharacteristicEventTypes.SET, this.setActiveIdentifier.bind(this)); // SET - bind to the 'setBrightness` method below
 
+    // register handlers for the remote control
+    if (accessory.context.device.remoteKeys) {
+      // map remote keys to their commands
+      const mappedRemoteKeys: { [key: number]: string[] } = {};
+      accessory.context.device.remoteKeys.forEach(
+        (remoteKey: { type: number; command: string[] }) => {
+          mappedRemoteKeys[remoteKey.type] = remoteKey.command;
+        }
+      );
+
+      this.service
+        .getCharacteristic(this.platform.Characteristic.RemoteKey)
+        .on(
+          CharacteristicEventTypes.SET,
+          (value: CharacteristicValue, callback: CharacteristicSetCallback) => {
+            if (value in mappedRemoteKeys) {
+              this.controller
+                .sendCommands(mappedRemoteKeys[value as number])
+                .then(() => {
+                  callback(null);
+                })
+                .catch((error) => {
+                  this.platform.log.error(error);
+                  callback(error);
+                });
+            } else {
+              callback(
+                new Error(`This RemoteKey has not been configured: ${value}`)
+              );
+            }
+          }
+        );
+    }
+
     // register inputs
     accessory.context.device.inputs &&
       accessory.context.device.inputs.forEach(
