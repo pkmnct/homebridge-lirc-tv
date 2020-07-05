@@ -136,12 +136,6 @@ export class LIRCTelevision {
         this.accessory.getService(this.platform.Service.TelevisionSpeaker) ??
         this.accessory.addService(this.platform.Service.TelevisionSpeaker);
 
-      // set the configured name for the Television Speaker service, this is what is displayed as the default name on the Home app
-      this.tvSpeakerService.setCharacteristic(
-        this.platform.Characteristic.ConfiguredName,
-        accessory.context.device.name + 'Volume'
-      );
-
       // set the volume control type
       this.tvSpeakerService.setCharacteristic(
         this.platform.Characteristic.VolumeControlType,
@@ -199,25 +193,32 @@ export class LIRCTelevision {
     value: CharacteristicValue,
     callback: CharacteristicSetCallback
   ): void {
-    this.controller
-      .sendCommands(
-        value
-          ? this.accessory.context.device.powerOn
-          : this.accessory.context.device.powerOff
-      )
-      .then(() => {
-        this.tvService.updateCharacteristic(
-          this.platform.Characteristic.Active,
+    if ((this.states.Active && !value) || (!this.states.Active && value)) {
+      this.controller
+        .sendCommands(
           value
-        );
-        this.states.Active = value as boolean;
-        this.platform.log.debug('Set Characteristic Active ->', value);
-        callback(null);
-      })
-      .catch((error) => {
-        this.platform.log.error(error);
-        callback(error);
-      });
+            ? this.accessory.context.device.powerOn
+            : this.accessory.context.device.powerOff
+        )
+        .then(() => {
+          this.tvService.updateCharacteristic(
+            this.platform.Characteristic.Active,
+            value
+          );
+          this.states.Active = value as boolean;
+          this.platform.log.debug('Set Characteristic Active ->', value);
+          callback(null);
+        })
+        .catch((error) => {
+          this.platform.log.error(error);
+          callback(error);
+        });
+    } else {
+      this.platform.log.error(
+        `Skipped power ${value ? 'on' : 'off'} command since no state change.`
+      );
+      callback(null);
+    }
   }
 
   /**
