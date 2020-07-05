@@ -199,25 +199,32 @@ export class LIRCTelevision {
     value: CharacteristicValue,
     callback: CharacteristicSetCallback
   ): void {
-    this.controller
-      .sendCommands(
-        value
-          ? this.accessory.context.device.powerOn
-          : this.accessory.context.device.powerOff
-      )
-      .then(() => {
-        this.tvService.updateCharacteristic(
-          this.platform.Characteristic.Active,
+    if ((this.states.Active && !value) || (!this.states.Active && value)) {
+      this.controller
+        .sendCommands(
           value
-        );
-        this.states.Active = value as boolean;
-        this.platform.log.debug('Set Characteristic Active ->', value);
-        callback(null);
-      })
-      .catch((error) => {
-        this.platform.log.error(error);
-        callback(error);
-      });
+            ? this.accessory.context.device.powerOn
+            : this.accessory.context.device.powerOff
+        )
+        .then(() => {
+          this.tvService.updateCharacteristic(
+            this.platform.Characteristic.Active,
+            value
+          );
+          this.states.Active = value as boolean;
+          this.platform.log.debug('Set Characteristic Active ->', value);
+          callback(null);
+        })
+        .catch((error) => {
+          this.platform.log.error(error);
+          callback(error);
+        });
+    } else {
+      this.platform.log.error(
+        `Skipped power ${value ? 'on' : 'off'} command since no state change.`
+      );
+      callback(null);
+    }
   }
 
   /**
