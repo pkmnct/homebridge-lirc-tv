@@ -136,12 +136,6 @@ export class LIRCTelevision {
         this.accessory.getService(this.platform.Service.TelevisionSpeaker) ??
         this.accessory.addService(this.platform.Service.TelevisionSpeaker);
 
-      // set the configured name for the Television Speaker service, this is what is displayed as the default name on the Home app
-      this.tvSpeakerService.setCharacteristic(
-        this.platform.Characteristic.ConfiguredName,
-        accessory.context.device.name + 'Volume'
-      );
-
       // set the volume control type
       this.tvSpeakerService.setCharacteristic(
         this.platform.Characteristic.VolumeControlType,
