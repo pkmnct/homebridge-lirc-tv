@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge LIRC TV",
   "name": "homebridge-lirc-tv",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Control IR Televisions using LIRC",
   "license": "Apache-2.0",
   "repository": {
