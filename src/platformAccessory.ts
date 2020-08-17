@@ -194,11 +194,19 @@ export class LIRCTelevision {
     callback: CharacteristicSetCallback
   ): void {
     if ((this.states.Active && !value) || (!this.states.Active && value)) {
+      let powerOnCommand = this.accessory.context.device.powerOn;
+      if (
+        powerOnCommand === null ||
+        powerOnCommand === undefined ||
+        powerOnCommand.length === 0
+      ) {
+        powerOnCommand = this.accessory.context.device.inputs[
+          this.states.ActiveIdentifier
+        ].command;
+      }
       this.controller
         .sendCommands(
-          value
-            ? this.accessory.context.device.powerOn
-            : this.accessory.context.device.powerOff
+          value ? powerOnCommand : this.accessory.context.device.powerOff
         )
         .then(() => {
           this.tvService.updateCharacteristic(
